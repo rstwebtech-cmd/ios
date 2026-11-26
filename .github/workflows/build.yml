@@ -59,7 +59,7 @@ jobs:
 
   ios:
     if: ${{ github.event.inputs.build_ios == 'true' }}
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
