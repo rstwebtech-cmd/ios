@@ -1,0 +1,5 @@
+(function(){var A=new URL(document.currentScript.src).origin,el=document.getElementById('jp-courses');if(!el)return;
+Promise.all([fetch(A+'/api/courses').then(r=>r.json()),fetch(A+'/api/combos').then(r=>r.json())]).then(function(d){
+var card=function(c,t){var img=c.Image?'<img src="'+(c.Image.indexOf('http')==0?c.Image:A+c.Image)+'" style="width:100%;display:block">':'';
+return '<div style="border:1px solid #ddd;border-radius:14px;overflow:hidden;background:#fff;font-family:sans-serif">'+img+'<div style="padding:12px"><b>'+c.Title+'</b><div><span style="color:#16a34a;font-size:20px">₹'+c.Price+'</span> <s style="color:#888">₹'+c.MRP+'</s></div><a href="'+A+'/checkout/'+c.ID+'" target="_blank" style="display:block;text-align:center;background:#6d28d9;color:#fff;padding:10px;border-radius:8px;margin-top:8px;text-decoration:none">'+t+'</a></div></div>'};
+el.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px">'+d[1].map(function(c){return card(c,'Combo Offer - Buy Now')}).join('')+d[0].map(function(c){return card(c,'Buy Now')}).join('')+'</div>'})})();

@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: janhavi-backend
+    runtime: docker
+    rootDir: backend
+    plan: free
+    envVars:
+      - key: ADMIN_KEY
+        generateValue: true
+      - key: STORE_URL
+        sync: false
+      - key: STORE_TOKEN
+        sync: false

@@ -1,0 +1,81 @@
+name: Build app
+on:
+  workflow_dispatch:
+    inputs:
+      api_url:
+        description: "Render backend URL (https://....onrender.com)"
+        required: true
+      build_ios:
+        description: "Also build iOS (.ipa)?"
+        type: boolean
+        default: true
+      deploy_web:
+        description: "Publish web version to GitHub Pages (open it on iPhone Safari)?"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  android-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable }
+      - run: cd app && flutter create . --platforms=android,web && flutter pub get
+      - name: Add internet permission
+        run: sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/>\n    <application#' app/android/app/src/main/AndroidManifest.xml && grep -n INTERNET app/android/app/src/main/AndroidManifest.xml
+      - name: Build web (GitHub Pages path)
+        run: cd app && flutter build web --release --base-href "/${{ github.event.repository.name }}/" --dart-define=API=${{ github.event.inputs.api_url }}
+      - run: cd app && flutter build apk --release --dart-define=API=${{ github.event.inputs.api_url }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: janhavi-app-android-web
+          path: |
+            app/build/app/outputs/flutter-apk/app-release.apk
+            app/build/web
+      - uses: actions/upload-pages-artifact@v3
+        if: ${{ github.event.inputs.deploy_web == 'true' }}
+        with:
+          path: app/build/web
+
+  deploy-web:
+    needs: android-web
+    if: ${{ github.event.inputs.deploy_web == 'true' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.dep.outputs.page_url }}
+    steps:
+      - id: dep
+        uses: actions/deploy-pages@v4
+
+  ios:
+    if: ${{ github.event.inputs.build_ios == 'true' }}
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable }
+      - run: cd app && flutter create . --platforms=ios && flutter pub get
+      - name: Set app display name
+        run: |
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName 'Janhavi Panwar'" app/ios/Runner/Info.plist || /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string 'Janhavi Panwar'" app/ios/Runner/Info.plist
+      - name: Build iOS (unsigned)
+        run: cd app && flutter build ios --release --no-codesign --dart-define=API=${{ github.event.inputs.api_url }}
+      - name: Package unsigned .ipa
+        run: |
+          cd app/build/ios/iphoneos
+          mkdir Payload && cp -R Runner.app Payload/
+          zip -qr janhavi-unsigned.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: janhavi-app-ios-unsigned
+          path: app/build/ios/iphoneos/janhavi-unsigned.ipa

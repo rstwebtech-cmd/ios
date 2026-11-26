@@ -1,0 +1,13 @@
+name: janhavi_app
+description: Janhavi Panwar courses
+publish_to: none
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.0
+  google_sign_in: ^6.2.1
+  url_launcher: ^6.3.0
+flutter:
+  uses-material-design: true

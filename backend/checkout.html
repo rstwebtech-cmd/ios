@@ -1,0 +1,14 @@
+<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Checkout</title>
+<style>body{font-family:sans-serif;background:#f5f3ff;margin:0}.b{max-width:420px;margin:30px auto;background:#fff;padding:22px;border-radius:18px}input,button{width:100%;padding:11px;margin:5px 0;border-radius:10px;border:1px solid #ccc;box-sizing:border-box}button{background:#6d28d9;color:#fff;border:0;font-size:16px}h2{color:#2e1065}</style>
+<div class=b><img src="/static/logo.png" height=40><div id=v></div></div>
+<script>
+const id=location.pathname.split('/').pop(),$=i=>document.getElementById(i);let T=localStorage.jt||'',item={},reg=false;
+async function api(m,p,b){const r=await fetch(p,{method:m,headers:{'Content-Type':'application/json',Authorization:'Bearer '+T},body:b?JSON.stringify(b):undefined});return r.json()}
+async function init(){const cs=await api('GET','/api/courses'),cb=await api('GET','/api/combos');item=[...cs,...cb].find(x=>x.ID==id)||{};T?pay():auth()}
+function auth(){$('v').innerHTML=`<h2>${item.Title||'Course'}</h2><b>₹${item.Price}</b><p>${reg?'Create a new account':'Login'}</p>${reg?'<input id=n placeholder="Full name"><input id=p placeholder="Mobile">':''}<input id=e placeholder=Email><input id=w type=password placeholder=Password><button onclick=go()>${reg?'Create account':'Login'}</button><a href=# onclick="reg=!reg;auth();return false">${reg?'Login':'Create a new account'}</a>`}
+async function go(){const r=await api('POST',reg?'/api/auth/register':'/api/auth/login',{name:$('n')?$('n').value:'',phone:$('p')?$('p').value:'',email:$('e').value,password:$('w').value});if(!r.token)return alert(r.error);T=localStorage.jt=r.token;pay()}
+function pay(){$('v').innerHTML=`<h2>${item.Title}</h2><p>Price: <b id=pr>₹${item.Price}</b></p><input id=c placeholder="Coupon code"><button onclick=ap() style="background:#999">Apply coupon</button><button onclick=buy()>Pay now</button><a href=# onclick="localStorage.jt=T='';auth();return false">Logout</a>`}
+async function ap(){const r=await api('POST','/api/coupon/validate',{itemId:id,code:$('c').value});if(r.error){T='';localStorage.jt='';return auth()}$('pr').innerHTML=r.valid?`<s>₹${r.original}</s> ₹${r.price}`:'₹'+r.original;if(!r.valid)alert('Coupon galat ya expire')}
+async function buy(){const r=await api('POST','/api/pay/order',{itemId:id,coupon:$('c').value});if(r.url)location=r.url;else{alert(r.error);if(r.error=='login required'){T='';localStorage.jt='';auth()}}}
+init()
+</script>
